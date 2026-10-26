@@ -1037,16 +1037,21 @@ downloadZipBtn.addEventListener("click", async () => {
         const zip = new JSZip();
         const folder = zip.folder("PDFX-Images");
 
-        for (const item of convertedImages) {
+        // Add images in numeric page order and keep filenames zero-padded
+        // so file explorers sort page-001, page-002, ... page-010 correctly.
+        const orderedImages = [...convertedImages].sort(
+            (a, b) => a.pageNumber - b.pageNumber
+        );
+
+        for (const item of orderedImages) {
             folder.file(item.filename, item.blob);
         }
 
+        // PNG/JPG files are already compressed; STORE avoids wasting time
+        // recompressing them and makes ZIP creation much faster.
         const zipBlob = await zip.generateAsync({
             type: "blob",
-            compression: "DEFLATE",
-            compressionOptions: {
-                level: 5
-            }
+            compression: "STORE"
         }, (metadata) => {
             downloadZipBtn.textContent =
                 "Creating ZIP " + Math.round(metadata.percent) + "%";
