@@ -535,8 +535,9 @@ footer {
         <div class="setting">
             <label for="resolution">IMAGE RESOLUTION</label>
             <select id="resolution">
-                <option value="1">1× — Standard</option>
-                <option value="2" selected>2× — High quality</option>
+                <option value="1" selected>1× — Fast</option>
+                <option value="1.5">1.5× — Balanced</option>
+                <option value="2">2× — High quality</option>
                 <option value="3">3× — Very high quality</option>
             </select>
         </div>
@@ -872,7 +873,10 @@ convertBtn.addEventListener("click", async () => {
         const fileData = await selectedFile.arrayBuffer();
 
         loadingTask = pdfjsLib.getDocument({
-            data: new Uint8Array(fileData)
+            data: new Uint8Array(fileData),
+            // Avoid expensive font-face installation where possible.
+            useSystemFonts: true,
+            isEvalSupported: false
         });
 
         pdfDocument = await loadingTask.promise;
@@ -903,7 +907,8 @@ convertBtn.addEventListener("click", async () => {
 
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d", {
-                alpha: format !== "jpeg"
+                alpha: format !== "jpeg",
+                desynchronized: true
             });
 
             if (!context) {
@@ -946,6 +951,11 @@ convertBtn.addEventListener("click", async () => {
             canvas.height = 0;
 
             page.cleanup();
+
+            // Let the browser process UI updates periodically on large PDFs.
+            if (pageNumber % 3 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
 
             updateProgress(
                 pageNumber,
